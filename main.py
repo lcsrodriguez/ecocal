@@ -1,4 +1,7 @@
+import numpy as np
 import requests
+import io
+import pandas as pd
 
 startHorizon, endHorizon = "2023-10-08", "2024-12-31"
 URL = f"https://calendar-api.fxstreet.com/en/api/v1/eventDates/{startHorizon}T00:00:00Z/{endHorizon}T23:59:59Z" \
@@ -21,4 +24,21 @@ URL = f"https://calendar-api.fxstreet.com/en/api/v1/eventDates/{startHorizon}T00
       f"&categories=91DA97BD-D94A-4CE8-A02B-B96EE2944E4C" \
       f"&categories=E9E957EC-2927-4A77-AE0C-F5E4B5807C16"
 
-r = requests.get(url=URL)
+try:
+      r = requests.get(url=URL,
+                       headers={
+                             "Accept": "text/csv",
+                             "Content-Type": "text/csv",
+                             "Referer": "https://www.fxstreet.com/",
+                             "Connection": "keep-alive",
+                             "User-Agent": "ecocal script",
+                       })
+except Exception as e:
+      raise Exception(f"An error just occurred (Error: {e})")
+if r.status_code != 200:
+      raise Exception(f"An error just occurred")
+
+df = pd.read_csv(filepath_or_buffer=io.StringIO(r.content.decode("utf-8")), na_values=np.NaN)
+#df["Impact"].mask(df["Impact"] == "NONE", np.NaN, inplace=True)
+
+print(df.head())
