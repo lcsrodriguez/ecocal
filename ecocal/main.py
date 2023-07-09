@@ -27,6 +27,7 @@ class EconomicCalendar:
         self.startHorizon: str = startHorizon if startHorizon is not None else "2023-10-08"
         self.endHorizon: str = endHorizon if startHorizon is not None else "2024-12-31"
         self.isCollected: bool = False
+        self.ecocal: pd.DataFrame = None
 
         if preBuildCalendar:
             try:
@@ -83,6 +84,13 @@ class EconomicCalendar:
         return self.isCollected
 
     def getCalendar(self) -> pd.DataFrame:
-        if not self.isCollected:
-            self._buildCalendar()
+        if not self.isCollected: self._buildCalendar()
         return self.ecocal
+
+    def saveCalendar(self) -> None:
+        if not self.isCollected: self._buildCalendar()
+        try:
+            self.ecocal.to_csv(path_or_buf=f"ecocal_{datetime.datetime.now().isoformat()}.csv",
+                               index_label="ID")
+        except OSError as e:
+            raise Exception(f"An error has occurred ({e}")
