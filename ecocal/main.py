@@ -14,6 +14,7 @@ class EconomicCalendar:
         "endHorizon",
         "ecocal",
         "details",
+        "detailed_ecocal",
         "URL",
         "hasCollectedTable",
         "hasCollectedDetails",
@@ -23,7 +24,8 @@ class EconomicCalendar:
     def __init__(self,
                  startHorizon: Union[datetime.datetime, str] = None,
                  endHorizon: Union[datetime.datetime, str] = None,
-                 preBuildCalendar: bool = True) -> None:
+                 preBuildCalendar: bool = True,
+                 withDetails: bool = False) -> None:
 
         if isinstance(startHorizon, (datetime.datetime, datetime.date)):
             startHorizon = startHorizon.strftime("%Y-%m-%d")
@@ -32,10 +34,13 @@ class EconomicCalendar:
 
         self.startHorizon: str = startHorizon if startHorizon is not None else "2023-10-08"
         self.endHorizon: str = endHorizon if startHorizon is not None else "2023-10-10"
+
         self.hasCollectedTable: bool = False
         self.hasCollectedDetails: bool = False
+
         self.ecocal: pd.DataFrame = None
         self.details: pd.DataFrame = None
+        self.detailed_ecocal: pd.DataFrame = None
 
         self.SOURCE_URL: str = "https://calendar-api.fxstreet.com/en/api/v1/eventDates"
         if preBuildCalendar:
@@ -45,6 +50,17 @@ class EconomicCalendar:
                     raise Exception(f"An error occured.")
             except Exception as e:
                 raise Exception(f"An error occured ({e})")
+
+        if withDetails:
+            self._mergeTableDetails()
+
+    def __str__(self):
+        return f"EcoCal: {self.startHorizon} --> {self.endHorizon} " \
+               f"(Collected ?: {self.hasCollectedTable}) " \
+               f"(Details ?: {self.hasCollectedDetails}) "
+
+    def __repr__(self):
+        return self.__str__()
 
     def _buildCalendar(self) -> bool:
 
@@ -69,16 +85,16 @@ class EconomicCalendar:
                    f"&categories=E9E957EC-2927-4A77-AE0C-F5E4B5807C16"
 
         try:
-            start_clock = time.time_ns()
+            start_clock = time.time()
             r = requests.get(url=self.URL,
                              headers={
-                                 "Accept": "text/csv",
-                                 "Content-Type": "text/csv",
-                                 "Referer": "https://www.fxstreet.com/",
-                                 "Connection": "keep-alive",
-                                 "User-Agent": "EcoCal script",
+                                 "Accept":"text/csv",
+                                 "Content-Type":"text/csv",
+                                 "Referer":"https://www.fxstreet.com/",
+                                 "Connection":"keep-alive",
+                                 "User-Agent":"EcoCal script",
                              })
-            end_clock = time.time_ns()
+            end_clock = time.time()
             dur_clock = end_clock - start_clock
             print(f"Duration: {dur_clock}")
         except Exception as e:
@@ -96,18 +112,24 @@ class EconomicCalendar:
     def getCalendar(self, withDetails: bool = True) -> pd.DataFrame:
         if not self.hasCollectedTable: self._buildCalendar()
         if withDetails:
-            if not self.hasCollectedDetails:
-                self._getDetails()
-                return self._mergeTableDetails()
+            return self.detailed_ecocal
         return self.ecocal
 
-    def saveCalendar(self) -> None:
+    def saveCalendar(self, withDetails: bool = True) -> None:
         if not self.hasCollectedTable: self._buildCalendar()
         try:
-            self.ecocal.to_csv(path_or_buf=f"ecocal_{datetime.datetime.now().isoformat()}.csv",
-                               index_label="ID")
+            if withDetails:
+                if self.detailed_ecocal is None:
+                    self._mergeTableDetails()
+                self.detailed_ecocal.to_csv(path_or_buf=f"ecocal_DETAILS_{datetime.datetime.now().isoformat()}.csv",
+                                            index_label="Card ID")
+            else:
+                self.ecocal.to_csv(path_or_buf=f"ecocal_BASIC_{datetime.datetime.now().isoformat()}.csv",
+                                   index_label="Card ID")
         except OSError as e:
-            raise Exception(f"An error has occurred ({e}")
+            raise Exception(f"An error has occurred ({e})")
+        except Exception as e:
+            raise Exception(f"An error has occurred ({e})")
 
     def _getDetails(self) -> pd.DataFrame:
         if not self.hasCollectedTable: self._buildCalendar()
@@ -121,7 +143,7 @@ class EconomicCalendar:
             r_id = row["Id"]
             resources.append(r_id)
 
-            if cg % LIMIT_ROW_GROUPING == 0:
+            if cg%LIMIT_ROW_GROUPING == 0:
                 cg = 0
                 threads = []
                 for i, res_id in enumerate(resources):
@@ -134,7 +156,7 @@ class EconomicCalendar:
                 del threads
                 resources = []
         df_ = pd.DataFrame(data=output).T
-        df_.rename(columns={"id": "Id"}, inplace=True)
+        df_.rename(columns={"id":"Id"}, inplace=True)
         self.hasCollectedDetails = True
         self.details = df_
         return self.details
@@ -146,11 +168,11 @@ class EconomicCalendar:
 
         r = requests.get(url=URL,
                          headers={
-                             "Accept": "application/json",
-                             "Content-Type": "application/json",
-                             "Referer": "https://www.fxstreet.com/",
-                             "Connection": "keep-alive",
-                             "User-Agent": "EcoCal script",
+                             "Accept":"application/json",
+                             "Content-Type":"application/json",
+                             "Referer":"https://www.fxstreet.com/",
+                             "Connection":"keep-alive",
+                             "User-Agent":"EcoCal script",
                          })
         if r.status_code == 200:
             output[resource_id] = r.json()
@@ -161,4 +183,5 @@ class EconomicCalendar:
         if not self.hasCollectedTable: self._buildCalendar()
         if not self.hasCollectedDetails: self._getDetails()
         df = pd.merge(left=self.ecocal, right=self.details, how="left", on="Id")
-        return df
+        self.detailed_ecocal = df
+        return self.detailed_ecocal
