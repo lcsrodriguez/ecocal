@@ -1,5 +1,9 @@
 from ecocal import *
 
 
-ec = EconomicCalendar(startHorizon="2023-10-10", endHorizon="2023-10-12", withDetails=True)
-ec.saveCalendar(False)
+ec = EconomicCalendar(startHorizon="2023-01-01",
+                      endHorizon="2023-12-31",
+                      withDetails=True,
+                      nbThreads=40
+                      )
+ec.saveCalendar(True)

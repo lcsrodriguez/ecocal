@@ -6,6 +6,7 @@ from typing import Union, List
 import datetime
 import time
 from threading import Thread
+from tqdm import tqdm
 
 
 class EconomicCalendar:
@@ -18,14 +19,18 @@ class EconomicCalendar:
         "URL",
         "hasCollectedTable",
         "hasCollectedDetails",
-        "SOURCE_URL"
+        "SOURCE_URL",
+        "withProgressBar",
+        "nbThreads"
     )
 
     def __init__(self,
                  startHorizon: Union[datetime.datetime, str] = None,
                  endHorizon: Union[datetime.datetime, str] = None,
                  preBuildCalendar: bool = True,
-                 withDetails: bool = False) -> None:
+                 withDetails: bool = False,
+                 withProgressBar: bool = True,
+                 nbThreads: int = 20) -> None:
 
         if isinstance(startHorizon, (datetime.datetime, datetime.date)):
             startHorizon = startHorizon.strftime("%Y-%m-%d")
@@ -37,10 +42,13 @@ class EconomicCalendar:
 
         self.hasCollectedTable: bool = False
         self.hasCollectedDetails: bool = False
+        self.withProgressBar: bool = withProgressBar
 
         self.ecocal: pd.DataFrame = None
         self.details: pd.DataFrame = None
         self.detailed_ecocal: pd.DataFrame = None
+
+        self.nbThreads: int = nbThreads
 
         self.SOURCE_URL: str = "https://calendar-api.fxstreet.com/en/api/v1/eventDates"
         if preBuildCalendar:
@@ -88,11 +96,11 @@ class EconomicCalendar:
             start_clock = time.time()
             r = requests.get(url=self.URL,
                              headers={
-                                 "Accept":"text/csv",
-                                 "Content-Type":"text/csv",
-                                 "Referer":"https://www.fxstreet.com/",
-                                 "Connection":"keep-alive",
-                                 "User-Agent":"EcoCal script",
+                                 "Accept": "text/csv",
+                                 "Content-Type": "text/csv",
+                                 "Referer": "https://www.fxstreet.com/",
+                                 "Connection": "keep-alive",
+                                 "User-Agent": "EcoCal script",
                              })
             end_clock = time.time()
             dur_clock = end_clock - start_clock
@@ -121,6 +129,9 @@ class EconomicCalendar:
             if withDetails:
                 if self.detailed_ecocal is None:
                     self._mergeTableDetails()
+                self.detailed_ecocal = self.detailed_ecocal.replace(r'\n', ' ', regex=True)
+                self.detailed_ecocal = self.detailed_ecocal.replace(r'\r', ' ', regex=True)
+                self.detailed_ecocal.drop(["name", "currencyCode"], axis=1, inplace=True)
                 self.detailed_ecocal.to_csv(path_or_buf=f"ecocal_DETAILS_{datetime.datetime.now().isoformat()}.csv",
                                             index_label="Card ID")
             else:
@@ -135,15 +146,20 @@ class EconomicCalendar:
         if not self.hasCollectedTable: self._buildCalendar()
 
         cg = 0
-        LIMIT_ROW_GROUPING: int = 10
+        LIMIT_ROW_GROUPING: int = self.nbThreads
+        SANITY_SLEEP_TIMEOUT: int = 0
         resources: List[str] = []
         output: dict = {}
-        for index, row in self.ecocal.iterrows():
+        if self.withProgressBar:
+            R = tqdm(self.ecocal.iterrows(), total=self.ecocal.shape[0], desc="Details", ncols=100)
+        else:
+            R = self.ecocal.iterrows()
+        for index, row in R:
             cg += 1
             r_id = row["Id"]
             resources.append(r_id)
 
-            if cg%LIMIT_ROW_GROUPING == 0:
+            if cg % LIMIT_ROW_GROUPING == 0:
                 cg = 0
                 threads = []
                 for i, res_id in enumerate(resources):
@@ -154,6 +170,7 @@ class EconomicCalendar:
                 for res_id, t in zip(resources, threads):
                     t.join()
                 del threads
+                time.sleep(SANITY_SLEEP_TIMEOUT)
                 resources = []
         df_ = pd.DataFrame(data=output).T
         df_.rename(columns={"id":"Id"}, inplace=True)
@@ -168,11 +185,11 @@ class EconomicCalendar:
 
         r = requests.get(url=URL,
                          headers={
-                             "Accept":"application/json",
-                             "Content-Type":"application/json",
-                             "Referer":"https://www.fxstreet.com/",
-                             "Connection":"keep-alive",
-                             "User-Agent":"EcoCal script",
+                             "Accept": "application/json",
+                             "Content-Type": "application/json",
+                             "Referer": "https://www.fxstreet.com/",
+                             "Connection": "keep-alive",
+                             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36",
                          })
         if r.status_code == 200:
             output[resource_id] = r.json()
