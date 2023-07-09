@@ -173,7 +173,7 @@ class EconomicCalendar:
                 time.sleep(SANITY_SLEEP_TIMEOUT)
                 resources = []
         df_ = pd.DataFrame(data=output).T
-        df_.rename(columns={"id":"Id"}, inplace=True)
+        df_.rename(columns={"id": "Id"}, inplace=True)
         self.hasCollectedDetails = True
         self.details = df_
         return self.details
