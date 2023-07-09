@@ -7,7 +7,16 @@ import datetime
 import time
 from threading import Thread
 from tqdm import tqdm
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 
+retry = Retry(
+    total=5,
+    backoff_factor=1
+)
+adapter = HTTPAdapter(
+    max_retries=retry
+)
 
 class EconomicCalendar:
     __slots__ = (
@@ -183,14 +192,17 @@ class EconomicCalendar:
             raise Exception("Please enter a valid resource id")
         URL = f"{self.SOURCE_URL}/{resource_id}"
 
-        r = requests.get(url=URL,
-                         headers={
-                             "Accept": "application/json",
-                             "Content-Type": "application/json",
-                             "Referer": "https://www.fxstreet.com/",
-                             "Connection": "keep-alive",
-                             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36",
-                         })
+        s = requests.Session()
+        s.mount("https://", adapter)
+        s.mount("http://", adapter)
+        r = s.get(url=URL,
+                  headers={
+                      "Accept": "application/json",
+                      "Content-Type": "application/json",
+                      "Referer": "https://www.fxstreet.com/",
+                      "Connection": "keep-alive",
+                      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36",
+                  })
         if r.status_code == 200:
             output[resource_id] = r.json()
             return output[resource_id]
