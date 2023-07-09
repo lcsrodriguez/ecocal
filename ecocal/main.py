@@ -11,7 +11,8 @@ class EconomicCalendar:
                  "endHorizon",
                  "ecocal",
                  "URL",
-                 "isCollected"
+                 "isCollected",
+                 "SOURCE_URL"
                  )
 
     def __init__(self,
@@ -28,7 +29,7 @@ class EconomicCalendar:
         self.endHorizon: str = endHorizon if startHorizon is not None else "2024-12-31"
         self.isCollected: bool = False
         self.ecocal: pd.DataFrame = None
-
+        self.SOURCE_URL: str = "https://calendar-api.fxstreet.com/en/api/v1/eventDates"
         if preBuildCalendar:
             try:
                 r_ = self._buildCalendar()
@@ -39,7 +40,7 @@ class EconomicCalendar:
 
     def _buildCalendar(self) -> bool:
 
-        self.URL = f"https://calendar-api.fxstreet.com/en/api/v1/eventDates/{self.startHorizon}T00:00:00Z/{self.endHorizon}T23:59:59Z" \
+        self.URL = f"{self.SOURCE_URL}/{self.startHorizon}T00:00:00Z/{self.endHorizon}T23:59:59Z" \
                    f"?&volatilities=NONE" \
                    f"&volatilities=LOW" \
                    f"&volatilities=MEDIUM" \
@@ -62,11 +63,11 @@ class EconomicCalendar:
         try:
             r = requests.get(url=self.URL,
                              headers={
-                                 "Accept":"text/csv",
-                                 "Content-Type":"text/csv",
-                                 "Referer":"https://www.fxstreet.com/",
-                                 "Connection":"keep-alive",
-                                 "User-Agent":"ecocal script",
+                                 "Accept": "text/csv",
+                                 "Content-Type": "text/csv",
+                                 "Referer": "https://www.fxstreet.com/",
+                                 "Connection": "keep-alive",
+                                 "User-Agent": "EcoCal script",
                              })
         except Exception as e:
             raise Exception(f"An error just occurred (Error: {e})")
@@ -94,3 +95,23 @@ class EconomicCalendar:
                                index_label="ID")
         except OSError as e:
             raise Exception(f"An error has occurred ({e}")
+
+    def getAdditionalInformations(self) -> pd.DataFrame:
+        if not self.isCollected: self._buildCalendar()
+
+        # For each record,
+        # TODO: Initiate threads groups
+        pass
+
+    def _requestAdditionalInformations(self, resource_id: str = "") -> dict:
+        URL = f"{self.SOURCE_URL}/{resource_id}"
+
+        r = requests.get(url=URL,
+                         headers={
+                             "Accept": "application/json",
+                             "Content-Type": "application/json",
+                             "Referer": "https://www.fxstreet.com/",
+                             "Connection": "keep-alive",
+                             "User-Agent": "EcoCal script",
+                         })
+        return r.json()
