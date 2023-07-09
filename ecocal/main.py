@@ -104,6 +104,8 @@ class EconomicCalendar:
         pass
 
     def _requestAdditionalInformations(self, resource_id: str = "") -> dict:
+        if not isinstance(resource_id, str) or str(resource_id) == "":
+            raise Exception("Please enter a valid resource id")
         URL = f"{self.SOURCE_URL}/{resource_id}"
 
         r = requests.get(url=URL,
