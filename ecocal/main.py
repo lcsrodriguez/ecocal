@@ -2,18 +2,23 @@ import numpy as np
 import requests
 import io
 import pandas as pd
-from typing import Union
+from typing import Union, List
 import datetime
+import time
+from threading import Thread
 
 
 class EconomicCalendar:
-    __slots__ = ("startHorizon",
-                 "endHorizon",
-                 "ecocal",
-                 "URL",
-                 "isCollected",
-                 "SOURCE_URL"
-                 )
+    __slots__ = (
+        "startHorizon",
+        "endHorizon",
+        "ecocal",
+        "details",
+        "URL",
+        "hasCollectedTable",
+        "hasCollectedDetails",
+        "SOURCE_URL"
+    )
 
     def __init__(self,
                  startHorizon: Union[datetime.datetime, str] = None,
@@ -26,9 +31,12 @@ class EconomicCalendar:
             endHorizon = endHorizon.strftime("%Y-%m-%d")
 
         self.startHorizon: str = startHorizon if startHorizon is not None else "2023-10-08"
-        self.endHorizon: str = endHorizon if startHorizon is not None else "2024-12-31"
-        self.isCollected: bool = False
+        self.endHorizon: str = endHorizon if startHorizon is not None else "2023-10-10"
+        self.hasCollectedTable: bool = False
+        self.hasCollectedDetails: bool = False
         self.ecocal: pd.DataFrame = None
+        self.details: pd.DataFrame = None
+
         self.SOURCE_URL: str = "https://calendar-api.fxstreet.com/en/api/v1/eventDates"
         if preBuildCalendar:
             try:
@@ -61,6 +69,7 @@ class EconomicCalendar:
                    f"&categories=E9E957EC-2927-4A77-AE0C-F5E4B5807C16"
 
         try:
+            start_clock = time.time_ns()
             r = requests.get(url=self.URL,
                              headers={
                                  "Accept": "text/csv",
@@ -69,6 +78,9 @@ class EconomicCalendar:
                                  "Connection": "keep-alive",
                                  "User-Agent": "EcoCal script",
                              })
+            end_clock = time.time_ns()
+            dur_clock = end_clock - start_clock
+            print(f"Duration: {dur_clock}")
         except Exception as e:
             raise Exception(f"An error just occurred (Error: {e})")
         if r.status_code != 200:
@@ -77,33 +89,57 @@ class EconomicCalendar:
             filepath_or_buffer=io.StringIO(r.content.decode("utf-8")),
             na_values=np.NaN
         )
-        # df["Impact"].mask(df["Impact"] == "NONE", np.NaN, inplace=True)
-
         self.ecocal: pd.DataFrame = df
-        self.isCollected = True
+        self.hasCollectedTable = True
+        return self.hasCollectedTable
 
-        return self.isCollected
-
-    def getCalendar(self) -> pd.DataFrame:
-        if not self.isCollected: self._buildCalendar()
+    def getCalendar(self, withDetails: bool = True) -> pd.DataFrame:
+        if not self.hasCollectedTable: self._buildCalendar()
+        if withDetails:
+            if not self.hasCollectedDetails:
+                self._getDetails()
+                return self._mergeTableDetails()
         return self.ecocal
 
     def saveCalendar(self) -> None:
-        if not self.isCollected: self._buildCalendar()
+        if not self.hasCollectedTable: self._buildCalendar()
         try:
             self.ecocal.to_csv(path_or_buf=f"ecocal_{datetime.datetime.now().isoformat()}.csv",
                                index_label="ID")
         except OSError as e:
             raise Exception(f"An error has occurred ({e}")
 
-    def getAdditionalInformations(self) -> pd.DataFrame:
-        if not self.isCollected: self._buildCalendar()
+    def _getDetails(self) -> pd.DataFrame:
+        if not self.hasCollectedTable: self._buildCalendar()
 
-        # For each record,
-        # TODO: Initiate threads groups
-        pass
+        cg = 0
+        LIMIT_ROW_GROUPING: int = 10
+        resources: List[str] = []
+        output: dict = {}
+        for index, row in self.ecocal.iterrows():
+            cg += 1
+            r_id = row["Id"]
+            resources.append(r_id)
 
-    def _requestAdditionalInformations(self, resource_id: str = "") -> dict:
+            if cg % LIMIT_ROW_GROUPING == 0:
+                cg = 0
+                threads = []
+                for i, res_id in enumerate(resources):
+                    t = Thread(target=self._requestDetails, args=(res_id, output))
+                    t.start()
+                    threads.append(t)
+
+                for res_id, t in zip(resources, threads):
+                    t.join()
+                del threads
+                resources = []
+        df_ = pd.DataFrame(data=output).T
+        df_.rename(columns={"id": "Id"}, inplace=True)
+        self.hasCollectedDetails = True
+        self.details = df_
+        return self.details
+
+    def _requestDetails(self, resource_id: str = "", output: dict = {}) -> Union[dict, None]:
         if not isinstance(resource_id, str) or str(resource_id) == "":
             raise Exception("Please enter a valid resource id")
         URL = f"{self.SOURCE_URL}/{resource_id}"
@@ -116,4 +152,13 @@ class EconomicCalendar:
                              "Connection": "keep-alive",
                              "User-Agent": "EcoCal script",
                          })
-        return r.json()
+        if r.status_code == 200:
+            output[resource_id] = r.json()
+            return output[resource_id]
+        return None
+
+    def _mergeTableDetails(self) -> pd.DataFrame:
+        if not self.hasCollectedTable: self._buildCalendar()
+        if not self.hasCollectedDetails: self._getDetails()
+        df = pd.merge(left=self.ecocal, right=self.details, how="left", on="Id")
+        return df

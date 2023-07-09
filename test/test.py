@@ -1,11 +1,10 @@
 from ecocal import *
 
 
-ec = EconomicCalendar()
+ec = EconomicCalendar(startHorizon="2023-10-10", endHorizon="2023-10-12")
 
 
-ec.saveCalendar()
+df_ = ec.getCalendar(withDetails=True)
 
-b = ec._requestAdditionalInformations("1a4f98a9-d465-44ba-9234-daf0a63608a1")
-
-print()
+print(df_)
+print(ec.ecocal.shape)
