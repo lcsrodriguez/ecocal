@@ -4,8 +4,7 @@ from .utils import *
 class Calendar:
     __class__: str = "Calendar"
     __slots__: dict = ("startHorizon", "endHorizon", "calendar", "details", "detailedCalendar", "URL",
-                       "hasCollectedCalendar", "hasCollectedDetailedCalendar", "SOURCE_URL", "withProgressBar",
-                       "nbThreads")
+                       "_hasCollectedCalendar", "_hasCollectedDetailedCalendar", "_withProgressBar", "nbThreads")
 
     def __init__(self,
                  startHorizon: Union[datetime.datetime, str] = None,
@@ -23,18 +22,17 @@ class Calendar:
         self.startHorizon: str = startHorizon if startHorizon is not None else "2020-01-01" # Default values
         self.endHorizon: str = endHorizon if startHorizon is not None else "2023-12-31"
 
-        self.hasCollectedTable: bool = False
-        self.hasCollectedDetails: bool = False
-        self.withProgressBar: bool = withProgressBar
+        self._hasCollectedCalendar: bool = False
+        self._hasCollectedDetailedCalendar: bool = False
+        self._withProgressBar: bool = withProgressBar
 
-        self.ecocal: pd.DataFrame = None
-        self.details: pd.DataFrame = None
-        self.detailed_ecocal: pd.DataFrame = None
+        self.calendar: Union[pd.DataFrame, None] = None                 # Basic calendar dataframe
+        self.details: Union[pd.DataFrame, None] = None                  # Details dataframe
+        self.detailedCalendar: Union[pd.DataFrame, None] = None         # Merged calendar (with details) dataframe
 
         self.nbThreads: int = nbThreads
         assert self.nbThreads > 0
 
-        self.SOURCE_URL: str = API_SOURCE_URL
         if preBuildCalendar:
             try:
                 r_ = self._buildCalendar()
@@ -45,16 +43,16 @@ class Calendar:
         if withDetails:
             self._mergeTableDetails()
 
-    def __str__(self):
-        return f"EcoCal: {self.startHorizon} --> {self.endHorizon} " \
-               f"(Collected ?: {self.hasCollectedTable}) " \
-               f"(Details ?: {self.hasCollectedDetails}) "
+    def __str__(self) -> str:
+        return f"Calendar - [{self.startHorizon}] --> [{self.endHorizon}] " \
+               f"(Collected ?: {self._hasCollectedCalendar}) " \
+               f"(Details ?: {self._hasCollectedDetailedCalendar}) "
 
     def __repr__(self) -> None:
         print(self.__str__())
 
     def _buildCalendar(self) -> bool:
-        self.URL = f"{self.SOURCE_URL}/{self.startHorizon}T00:00:00Z/{self.endHorizon}T23:59:59Z" \
+        self.URL = f"{API_SOURCE_URL}/{self.startHorizon}T00:00:00Z/{self.endHorizon}T23:59:59Z" \
                    f"?&volatilities=NONE" \
                    f"&volatilities=LOW" \
                    f"&volatilities=MEDIUM" \
@@ -94,29 +92,29 @@ class Calendar:
             filepath_or_buffer=io.StringIO(r.content.decode("utf-8")),
             na_values=np.NaN
         )
-        self.ecocal: pd.DataFrame = df
-        self.hasCollectedTable = True
-        return self.hasCollectedTable
+        self.calendar: pd.DataFrame = df
+        self._hasCollectedCalendar = True
+        return self._hasCollectedCalendar
 
     def getCalendar(self, withDetails: bool = True) -> pd.DataFrame:
-        if not self.hasCollectedTable: self._buildCalendar()
+        if not self._hasCollectedCalendar: self._buildCalendar()
         if withDetails:
-            return self.detailed_ecocal
-        return self.ecocal
+            return self.detailedCalendar
+        return self.calendar
 
-    def saveCalendar(self, withDetails: bool = True) -> None:
-        if not self.hasCollectedTable: self._buildCalendar()
+    def saveCalendar(self, saveDetails: bool = True) -> None:
+        if not self._hasCollectedCalendar: self._buildCalendar()
         try:
-            if withDetails:
-                if self.detailed_ecocal is None:
+            if saveDetails:
+                if self.detailedCalendar is None:
                     self._mergeTableDetails()
-                self.detailed_ecocal = self.detailed_ecocal.replace(r'\n', ' ', regex=True)
-                self.detailed_ecocal = self.detailed_ecocal.replace(r'\r', ' ', regex=True)
-                self.detailed_ecocal.drop(["name", "currencyCode"], axis=1, inplace=True)
-                self.detailed_ecocal.to_csv(path_or_buf=f"ecocal_DETAILS_{datetime.datetime.now().isoformat()}.csv",
+                self.detailedCalendar = self.detailedCalendar.replace(r'\n', ' ', regex=True)
+                self.detailedCalendar = self.detailedCalendar.replace(r'\r', ' ', regex=True)
+                self.detailedCalendar.drop(["name", "currencyCode"], axis=1, inplace=True)
+                self.detailedCalendar.to_csv(path_or_buf=f"ecocal_DETAILS_{datetime.datetime.now().isoformat()}.csv",
                                             index_label="Card ID")
             else:
-                self.ecocal.to_csv(path_or_buf=f"ecocal_BASIC_{datetime.datetime.now().isoformat()}.csv",
+                self.calendar.to_csv(path_or_buf=f"ecocal_BASIC_{datetime.datetime.now().isoformat()}.csv",
                                    index_label="Card ID")
         except OSError as e:
             raise Exception(f"An error has occurred ({e})")
@@ -124,17 +122,16 @@ class Calendar:
             raise Exception(f"An error has occurred ({e})")
 
     def _getDetails(self) -> pd.DataFrame:
-        if not self.hasCollectedTable: self._buildCalendar()
-
+        if not self._hasCollectedCalendar: self._buildCalendar()
         cg = 0
         LIMIT_ROW_GROUPING: int = self.nbThreads
         SANITY_SLEEP_TIMEOUT: int = 0
         resources: List[str] = []
         output: dict = {}
-        if self.withProgressBar:
-            R = tqdm(self.ecocal.iterrows(), total=self.ecocal.shape[0], desc="Details", ncols=100)
+        if self._withProgressBar:
+            R = tqdm(self.calendar.iterrows(), total=self.calendar.shape[0], desc="Details", ncols=100)
         else:
-            R = self.ecocal.iterrows()
+            R = self.calendar.iterrows()
         for index, row in R:
             cg += 1
             r_id = row["Id"]
@@ -155,14 +152,14 @@ class Calendar:
                 resources = []
         df_ = pd.DataFrame(data=output).T
         df_.rename(columns={"id": "Id"}, inplace=True)
-        self.hasCollectedDetails = True
+        self._hasCollectedDetailedCalendar = True
         self.details = df_
         return self.details
 
     def _requestDetails(self, resource_id: str = "", output: dict = {}) -> Union[dict, None]:
         if not isinstance(resource_id, str) or str(resource_id) == "":
             raise Exception("Please enter a valid resource id")
-        URL = f"{self.SOURCE_URL}/{resource_id}"
+        URL = f"{API_SOURCE_URL}/{resource_id}"
 
         s = requests.Session()
         s.mount("https://", adapter)
@@ -181,8 +178,8 @@ class Calendar:
         return None
 
     def _mergeTableDetails(self) -> pd.DataFrame:
-        if not self.hasCollectedTable: self._buildCalendar()
-        if not self.hasCollectedDetails: self._getDetails()
-        df = pd.merge(left=self.ecocal, right=self.details, how="left", on="Id")
-        self.detailed_ecocal = df
-        return self.detailed_ecocal
+        if not self._hasCollectedCalendar: self._buildCalendar()
+        if not self._hasCollectedDetailedCalendar: self._getDetails()
+        df = pd.merge(left=self.calendar, right=self.details, how="left", on="Id")
+        self.detailedCalendar = df
+        return self.detailedCalendar
