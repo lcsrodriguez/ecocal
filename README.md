@@ -47,9 +47,9 @@ python3 test/test.py
 ```
 
 ```python
-from ecocal import EconomicCalendar
+from ecocal import Calendar
 
-ec = EconomicCalendar(startHorizon="2023-10-10", 
+ec = Calendar(startHorizon="2023-10-10", 
                       endHorizon="2023-10-12", 
                       withDetails=True
                       )
