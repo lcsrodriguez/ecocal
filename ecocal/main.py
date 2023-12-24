@@ -33,6 +33,8 @@ class Calendar:
         self.nbThreads: int = nbThreads
         assert self.nbThreads > 0
 
+        print(f"Calendar \t| {self.startHorizon} --> {self.endHorizon}")
+
         if preBuildCalendar:
             try:
                 r_ = self._buildCalendar()
@@ -93,6 +95,7 @@ class Calendar:
             na_values=np.NaN
         )
         self.calendar: pd.DataFrame = df
+        print(f"Number of events: {len(df)}")
         self._hasCollectedCalendar = True
         return self._hasCollectedCalendar
 
