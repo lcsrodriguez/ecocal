@@ -2,19 +2,10 @@ from .utils import *
 
 
 class Calendar:
-    __slots__ = (
-        "startHorizon",
-        "endHorizon",
-        "ecocal",
-        "details",
-        "detailed_ecocal",
-        "URL",
-        "hasCollectedTable",
-        "hasCollectedDetails",
-        "SOURCE_URL",
-        "withProgressBar",
-        "nbThreads"
-    )
+    __class__: str = "Calendar"
+    __slots__: dict = ("startHorizon", "endHorizon", "calendar", "details", "detailedCalendar", "URL",
+                       "hasCollectedCalendar", "hasCollectedDetailedCalendar", "SOURCE_URL", "withProgressBar",
+                       "nbThreads")
 
     def __init__(self,
                  startHorizon: Union[datetime.datetime, str] = None,
@@ -22,15 +13,15 @@ class Calendar:
                  preBuildCalendar: bool = True,
                  withDetails: bool = False,
                  withProgressBar: bool = True,
-                 nbThreads: int = 20) -> None:
+                 nbThreads: int = DEFAULT_THREADS) -> None:
 
         if isinstance(startHorizon, (datetime.datetime, datetime.date)):
             startHorizon = startHorizon.strftime("%Y-%m-%d")
         if isinstance(endHorizon, (datetime.datetime, datetime.date)):
             endHorizon = endHorizon.strftime("%Y-%m-%d")
 
-        self.startHorizon: str = startHorizon if startHorizon is not None else "2023-10-08"
-        self.endHorizon: str = endHorizon if startHorizon is not None else "2023-10-10"
+        self.startHorizon: str = startHorizon if startHorizon is not None else "2020-01-01" # Default values
+        self.endHorizon: str = endHorizon if startHorizon is not None else "2023-12-31"
 
         self.hasCollectedTable: bool = False
         self.hasCollectedDetails: bool = False
@@ -41,6 +32,7 @@ class Calendar:
         self.detailed_ecocal: pd.DataFrame = None
 
         self.nbThreads: int = nbThreads
+        assert self.nbThreads > 0
 
         self.SOURCE_URL: str = API_SOURCE_URL
         if preBuildCalendar:
@@ -50,7 +42,6 @@ class Calendar:
                     raise Exception(f"An error occured.")
             except Exception as e:
                 raise Exception(f"An error occured ({e})")
-
         if withDetails:
             self._mergeTableDetails()
 
@@ -59,11 +50,10 @@ class Calendar:
                f"(Collected ?: {self.hasCollectedTable}) " \
                f"(Details ?: {self.hasCollectedDetails}) "
 
-    def __repr__(self):
-        return self.__str__()
+    def __repr__(self) -> None:
+        print(self.__str__())
 
     def _buildCalendar(self) -> bool:
-
         self.URL = f"{self.SOURCE_URL}/{self.startHorizon}T00:00:00Z/{self.endHorizon}T23:59:59Z" \
                    f"?&volatilities=NONE" \
                    f"&volatilities=LOW" \
@@ -90,13 +80,12 @@ class Calendar:
                              headers={
                                  "Accept": "text/csv",
                                  "Content-Type": "text/csv",
-                                 "Referer": "https://www.fxstreet.com/",
+                                 "Referer": BASE_URL,
                                  "Connection": "keep-alive",
-                                 "User-Agent": "EcoCal script",
+                                 "User-Agent": DEFAULT_USER_AGENT,
                              })
             end_clock = time.time()
             dur_clock = end_clock - start_clock
-            print(f"Duration: {dur_clock}")
         except Exception as e:
             raise Exception(f"An error just occurred (Error: {e})")
         if r.status_code != 200:
@@ -182,11 +171,11 @@ class Calendar:
                   headers={
                       "Accept": "application/json",
                       "Content-Type": "application/json",
-                      "Referer": "https://www.fxstreet.com/",
+                      "Referer": BASE_URL,
                       "Connection": "keep-alive",
-                      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36",
+                      "User-Agent": DEFAULT_USER_AGENT,
                   })
-        if r.status_code == 200:
+        if r.status_code // 100 == 2:
             output[resource_id] = r.json()
             return output[resource_id]
         return None
