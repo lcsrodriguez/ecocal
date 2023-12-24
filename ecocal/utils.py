@@ -9,6 +9,7 @@ from threading import Thread
 from tqdm import tqdm
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from .constants import *
 
 retry = Retry(
     total=5,

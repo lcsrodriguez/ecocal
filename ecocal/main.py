@@ -42,7 +42,7 @@ class Calendar:
 
         self.nbThreads: int = nbThreads
 
-        self.SOURCE_URL: str = "https://calendar-api.fxstreet.com/en/api/v1/eventDates"
+        self.SOURCE_URL: str = API_SOURCE_URL
         if preBuildCalendar:
             try:
                 r_ = self._buildCalendar()
