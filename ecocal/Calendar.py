@@ -1,6 +1,12 @@
 from .utils import *
 
 
+class T:
+    def __init__(self, a) -> None:
+        print(a)
+        ...
+
+
 class Calendar:
     __class__: str = "Calendar"
     __slots__: dict = ("startHorizon", "endHorizon", "calendar", "details", "detailedCalendar", "URL",
@@ -12,7 +18,7 @@ class Calendar:
                  preBuildCalendar: bool = True,
                  withDetails: bool = False,
                  withProgressBar: bool = True,
-                 nbThreads: int = DEFAULT_THREADS) -> None:
+                 nbThreads: int = DEFAULT_THREADS_NUMBER) -> None:
 
         if isinstance(startHorizon, (datetime.datetime, datetime.date)):
             startHorizon = startHorizon.strftime("%Y-%m-%d")
@@ -46,12 +52,12 @@ class Calendar:
             self._mergeTableDetails()
 
     def __str__(self) -> str:
-        return f"Calendar - [{self.startHorizon}] --> [{self.endHorizon}] " \
-               f"(Collected ?: {self._hasCollectedCalendar}) " \
-               f"(Details ?: {self._hasCollectedDetailedCalendar}) "
+        return f"Calendar - [{self.startHorizon}] -- [{self.endHorizon}] " \
+               f"(Collected: {self._hasCollectedCalendar}) " \
+               f"(Details: {self._hasCollectedDetailedCalendar}) "
 
-    def __repr__(self) -> None:
-        print(self.__str__())
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def _buildCalendar(self) -> bool:
         self.URL = f"{API_SOURCE_URL}/{self.startHorizon}T00:00:00Z/{self.endHorizon}T23:59:59Z" \
@@ -144,7 +150,7 @@ class Calendar:
                 cg = 0
                 threads = []
                 for i, res_id in enumerate(resources):
-                    t = Thread(target=self._requestDetails, args=(res_id, output))
+                    t = Thread(target=self._requestDetails, args=(res_id, output), name="Thread")
                     t.start()
                     threads.append(t)
 

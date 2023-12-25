@@ -6,4 +6,5 @@ class Event:
     __slots__: dict = ("name", )
 
     def __init__(self) -> None:
+        # Taking a pd.Series in input
         ...
