@@ -70,6 +70,7 @@
 
 ```
 ./
+├── CITATION.cff
 ├── Dockerfile
 ├── LICENSE
 ├── Makefile
@@ -83,7 +84,8 @@
 ├── examples/
 │   ├── main.ipynb
 │   └── main.py
-└── requirements.txt
+├── requirements.txt
+└── setup.py
 ```
 
 ## License & Credits
