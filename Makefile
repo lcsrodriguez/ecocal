@@ -13,3 +13,4 @@ install:
 clean:
 	@echo "Cleaning output folders..."
 	@rm -rf out/*.csv
+	@rm -rf examples/*.csv
