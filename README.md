@@ -15,36 +15,51 @@
 
 
 ## Getting started
+> Install from **PyPI**:
+1. Install `ecocal` package
+    ```shell
+    pip3 install ecocal
+    ```
+2. Execute the example code
+    ```python
+    from ecocal import Calendar
+   
+    ec = Calendar(startHorizon="2023-10-26",
+                  endHorizon="2023-11-30",
+                  withDetails=True,
+                  nbThreads=20,
+                  preBuildCalendar=True,
+                  )
+    print(ec)
+   
+    # On-disk saving of detailed calendar
+    ec.saveCalendar()
+    ```
+    Code available using:
+    - `python examples/main.py`
+    - `jupyter-notebook examples/main.ipynb` (dynamic debugging)
 
-```shell
-git clone https://github.com/lcsrodriguez/ecocal.git
-cd ecocal/
 
-python3 -m venv .venv
-source .venv/bin/activate
-
-pip3 install -r requirements.txt
-pip3 freeze
-
-python3 setup.py sdist bdist_wheel # Build the package from source
-```
-
-Run the example script:
-```
-python3 test/test.py
-```
-
-```python
-from ecocal import Calendar
-
-ec = Calendar(startHorizon="2023-10-10", 
-                      endHorizon="2023-10-12", 
-                      withDetails=True
-                      )
-
-ec.saveCalendar(withDetails=True)
-```
-
+> Install from **source**
+1. Clone the repository:
+    ```shell
+    git clone https://github.com/lcsrodriguez/ecocal.git
+    cd ecocal/
+    ```
+2. Create a virtual environment for **clean** environment
+    ```shell
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+3. Install the required Python packages
+    ```shell
+    pip3 install -r requirements.txt
+    pip3 freeze
+    ```
+4. Initiate the project
+    ```shell
+    make init
+    ```
 
 ## Project's architecture
 
@@ -65,8 +80,6 @@ ec.saveCalendar(withDetails=True)
 │   └── main.py
 └── requirements.txt
 ```
-
-To reproduce the file tree, run: `tree -L 2 -I '*.csv'`
 
 ## License
 
