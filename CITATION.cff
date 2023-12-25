@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this package, please cite it as below."
+authors:
+- family-names: "RODRIGUEZ"
+  given-names: "Lucas"
+  url: "https://lcsrodriguez.github.io"
+title: "ecocal"
+version: 1.2.0
+date-released: 2023-12-25
+url: "https://github.com/lcsrodriguez/ecocal"
