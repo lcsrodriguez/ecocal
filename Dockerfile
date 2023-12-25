@@ -8,4 +8,5 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "test/test.py"]
+CMD ["python", "examples/main.py"]
+
