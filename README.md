@@ -92,4 +92,18 @@
 
 - **[Lucas RODRIGUEZ](https://lcsrodriguez.github.io)**
 
-[MIT](LICENSE)
+The [LICENSE](LICENSE) file contains the full license details.
+
+
+If you are using this package for research purposes, you can quote it as shown below *(BibTeX format)*:
+
+```shell
+@software{RODRIGUEZ_ecocal_2023,
+author = {RODRIGUEZ, Lucas},
+month = dec,
+title = {{ecocal}},
+url = {https://github.com/lcsrodriguez/ecocal},
+version = {1.2.0},
+year = {2023}
+}
+```
