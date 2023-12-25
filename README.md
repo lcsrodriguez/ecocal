@@ -10,12 +10,12 @@
 
 ****
 
-*Disclaimer*: 
-- Data scraped and processed from external sources: **[FxStreet](https://www.fxstreet.com/economic-calendar)** website.
-- Data provided **AS IS** for information purpose only. 
-
+**DISCLAIMER**: 
+- Data extracted from external providers. No warranty on data quality/accuracy.
+- Data provided **AS IS** for information purpose only.
 
 ## Getting started
+
 > Install from **PyPI**:
 1. Install `ecocal` package
     ```shell
@@ -23,18 +23,22 @@
     ```
 2. Execute the example code
     ```python
-    from ecocal import Calendar
+   from ecocal import *
    
-    ec = Calendar(startHorizon="2023-10-26",
-                  endHorizon="2023-11-30",
-                  withDetails=True,
-                  nbThreads=20,
-                  preBuildCalendar=True,
-                  )
-    print(ec)
    
-    # On-disk saving of detailed calendar
-    ec.saveCalendar()
+   def main() -> None:
+       ec = Calendar(startHorizon="2023-10-26",
+                     endHorizon="2023-11-30",
+                     withDetails=True,
+                     nbThreads=20,
+                     preBuildCalendar=True,
+                     )
+       print(ec)
+       # On-disk saving of detailed calendar
+       ec.saveCalendar()
+   
+   if __name__ == "__main__":
+       main()
     ```
     Code available using:
     - `python examples/main.py`
@@ -82,6 +86,8 @@
 └── requirements.txt
 ```
 
-## License
+## License & Credits
+
+- **[Lucas RODRIGUEZ](https://lcsrodriguez.github.io)**
 
 [MIT](LICENSE)
