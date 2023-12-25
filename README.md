@@ -110,7 +110,7 @@ author = {RODRIGUEZ, Lucas},
 month = dec,
 title = {{ecocal}},
 url = {https://github.com/lcsrodriguez/ecocal},
-version = {1.2.0},
+version = {1.2.1},
 year = {2023}
 }
 ```
