@@ -27,6 +27,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={'': '.'},
+    extras_require={
+        "interactive": ["notebook==7.0.6"],
+    },
     install_requires=REQUIREMENTS,  # [],
     python_requires='>=3.10',
 )
