@@ -4,6 +4,13 @@
 
 [![CodeQL](https://github.com/lcsrodriguez/ecocal/actions/workflows/codeql.yml/badge.svg)](https://github.com/lcsrodriguez/ecocal/actions/workflows/codeql.yml)&nbsp;![](https://img.shields.io/badge/Dependabot-enabled-blue)
 
+![PyPI - Downloads](https://img.shields.io/pypi/dw/ecocal)
+![PyPI - Format](https://img.shields.io/pypi/format/ecocal)
+![PyPI - Implementation](https://img.shields.io/pypi/implementation/ecocal)
+![PyPI - License](https://img.shields.io/pypi/l/ecocal)
+![PyPI - Version](https://img.shields.io/pypi/v/ecocal)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ecocal)
+
 ## Overview
 
 `ecocal` is a light-weight and easy-to-user Python package allowing every developer to retrieve full access to both historical and future insightful and hifhly-detailed economic calendar (worldwide scale).
